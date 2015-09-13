@@ -28,12 +28,9 @@ def test(args):
     for instance_number in range(phpunit_instance_count):
         container = "{0}-{1}".format("eclass-parallel-phpunit", instance_number)
         print "Creating {0}".format(container)
-
-        init_docker_container_db_cmd = "sudo ./initialize-eclass-parallel-phpunit-db.sh {0}".format(container)
         
-        test_cmd = "sudo ./test-eclass-parallel-phpunit.sh {0} \"{1}\"".format(
+        test_cmd = "./test-eclass-parallel-phpunit.sh {0} \"{1}\"".format(
             container, " ".join(testsuites_group_array[instance_number]))
         print test_cmd
-
-        os.system(init_docker_container_db_cmd)
+        
         os.system(test_cmd)

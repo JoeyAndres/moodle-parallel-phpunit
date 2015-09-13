@@ -1,2 +1,7 @@
 *.pyc
 *result.out
+test-*.out
+*.log
+phpu_moodledata-*
+
+phpu_moodledb.sql

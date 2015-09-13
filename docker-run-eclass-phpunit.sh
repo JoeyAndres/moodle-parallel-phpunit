@@ -9,11 +9,11 @@ container="$image"-"$instance_count"
 echo $container
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-sudo "$DIR"/remove-container.sh "$container"
+"$DIR"/remove-container.sh "$container"
 
-sudo docker run -d -P -v ${eclass_dir}:/eclass-unified --name ${container} ${image}
+docker run -d -P -v ${eclass_dir}:/eclass-unified --name ${container} ${image}
 
 # TODO: Have a clean way to know if db is up.
 sleep 20s
 
-(sudo docker exec -u lmsadmin ${container} /home/lmsadmin/run_phpunit_testsuites_subset.sh "\"$testsuites_subset\"") > test-${instance_count}.out &
+(docker exec -u lmsadmin ${container} /home/lmsadmin/run_phpunit_testsuites_subset.sh "\"$testsuites_subset\"") > test-${instance_count}.out &

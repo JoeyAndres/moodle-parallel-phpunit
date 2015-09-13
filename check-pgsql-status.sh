@@ -5,7 +5,7 @@ container="$1"
 pgsql_running=false
 
 while [ $pgsql_running = false ]; do
-    pgsql_online_status=$(sudo docker exec ${container} service postgresql status | grep online)
+    pgsql_online_status=$(docker exec ${container} service postgresql status | grep online)
     echo $pgsql_online_status
     if [ -z "$pgsql_online_status" ]; then
 	echo "Waiting for postgresql to start."
