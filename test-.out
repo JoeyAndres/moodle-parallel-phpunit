@@ -1,0 +1,24 @@
+Initialising Moodle PHPUnit test environment...
+Executing: /eclass-unified/vendor/bin/phpunit -c /eclass-unified/phpunit.xml --testsuite repository_dropbox_testMoodleMoodMoodle 2.8.5 (Build: 20150310), pgsql, 71588c9a493a4ea3c959f5a56a5f1a83f87654ac
+PHPUnit 3.7.38 by Sebastian Bergmann.
+
+Configuration read from /eclass-unified/php.E
+
+...............
+
+Time: 11.73 seconds, Memory: 69.75Mb
+
+OK (19 tests, 199 assertions)
+s)
+44 tests, 211 assertions)
+e_emails
+file_put_contents(sample-archive-list.csv): failed to open stream: Permission denied
+
+/eclass-unified/local/eclass/tests/generate_archive_emails_test.php:48
+/eclass-unified/lib/phpunit/classes/advanced_testcase.php:80
+
+To re-run:
+ /eclass-unified/vendor/bin/phpunit generate_archive_emails_testcase class-unified/local/eclass/tests/generate_archive_emails_test.php
+
+FAILURES!
+Tests: 2, Assertions: 38, Errors: 1.
