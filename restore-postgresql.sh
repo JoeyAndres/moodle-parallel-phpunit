@@ -3,5 +3,6 @@
 container="$1"
 log_file="logs/restore-${container}.log"
 
-cat "Restore Log: $(date)" >> $log_file
-(cat ./phpu_moodledb.sql | docker exec -i -u postgres ${container} psql moodledb) >> $log_file 2>&1
+echo "Restore Log: $(date) ########################################################################" >> $log_file
+docker exec -i -u postgres ${container} pg_restore -j 16 -d moodledb /phpu_moodledata/phpu_moodledb.sql
+echo -e "\n"

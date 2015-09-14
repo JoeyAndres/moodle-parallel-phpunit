@@ -3,6 +3,7 @@
 import os
 import time
 import sys
+import subprocess
 
 """
 """
@@ -26,6 +27,9 @@ def setup(args):
     if '--help' in args:
         print "\"eclass-parallel-phpunit setup\" requires the number of parallel phpunit instance to execute. The ideal number is the number of cores in your system. For instance in an 8-core machine: \"eclass-parallel-phpunit setup 8\""
 
+    if '--recreate-image' in args:
+        _recreate_image()
+
     phpunit_instance_count = None
     try:
         phpunit_instance_count = int(args[0])
@@ -47,9 +51,6 @@ def setup(args):
     # TODO: Update the documentation.
     # 1. Create image if not yet created.
     # TODO: Make image/container name.
-    print "Creating eclass-parallel-phpunit-first image"
-    create_docker_first_img_cmd = "docker build -t eclass-parallel-phpunit-first -f ./Dockerfiles/dockerfile-first ./Dockerfiles"
-    os.system(create_docker_first_img_cmd)
     os.system("mkdir -p phpu_moodledata-0")
     
     instance_number = 0
@@ -59,7 +60,7 @@ def setup(args):
         "eclass-parallel-phpunit-first",
         container,
         "/home/jandres/CompScie/eclass-unified-docker",
-        "\"-v /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledata-0:/phpu_moodledata \"")
+        "\"-v /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledatas/phpu_moodledata-0:/phpu_moodledata \"")
     init_docker_container_db_cmd = "./initialize-eclass-parallel-phpunit-db.sh {0}".format(container)
     backup_docker_container_db_cmd = "./backup-postgresql.sh {0}".format(container)
 
@@ -76,9 +77,6 @@ def setup(args):
 
     print "Backing up eclass-parallel-phpunit-{0} phpunit db".format(instance_number)
     os.system(backup_docker_container_db_cmd)
-
-    create_docker_rest_img_cmd = "docker build -t eclass-parallel-phpunit -f ./Dockerfiles/dockerfile-rest ./Dockerfiles"
-    os.system(create_docker_rest_img_cmd)
     
     # 2. Create phpunit_instance_count container based off the image just created.
     # 3. Execute /eclass-unified/vendor/bin/phpunit for each container, to initialize the db.
@@ -89,10 +87,11 @@ def setup(args):
             "eclass-parallel-phpunit",
             container,
             "/home/jandres/CompScie/eclass-unified-docker",
-            " \"-v /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledata-{0}:/phpu_moodledata\" ".format(instance_number))
+            " \"-v /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledatas/phpu_moodledata-{0}:/phpu_moodledata\" ".format(instance_number))
         restore_docker_container_db_cmd = "./restore-postgresql.sh {0}".format(container)
-
-        os.system("cp -TR /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledata-0 /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledata-{0}".format(instance_number))
+        
+        os.system("cp -TR /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledatas/phpu_moodledata-0 /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledatas/phpu_moodledata-{0}".format(instance_number))
+        os.system("cp /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledb.sql /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledatas/phpu_moodledata-{0}/".format(instance_number))
 
         print "Removing eclass-parallel-phpunit-{0} container if exist".format(instance_number)
         os.system(remove_docker_contaienr_if_exist)

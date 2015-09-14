@@ -2,4 +2,4 @@
 
 container="$1"
 
-(docker exec -u postgres ${container} pg_dump moodledb) > phpu_moodledb.sql
+(docker exec -u postgres ${container} pg_dump -Fc moodledb) > phpu_moodledb.sql
