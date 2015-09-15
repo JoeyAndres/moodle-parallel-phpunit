@@ -3,5 +3,6 @@
 test-*.out
 *.log
 phpu_moodledata-*
+phpu_moodledatas/
 
 phpu_moodledb.sql

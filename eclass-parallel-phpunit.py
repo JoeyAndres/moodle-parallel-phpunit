@@ -10,11 +10,24 @@ import setup
 import destroy
 import test
 
+def help():
+    print """
+    eclass-parallel-phpunit [COMMAND] [OPTIONS]
+    
+    COMMANDS:
+    * setup: Sets up the container/phpunit instances.
+    * test: Divides and executes the tests.
+    * destroy: Destroys all the container/phpunit instances.
+
+    For more information for each command use:
+    eclass-parallel-phpunit [COMMAND] --help
+    """
+
 options = {
     'setup': setup.setup,
     'destroy': destroy.destroy,
     'test': test.test,
-    '--help': None
+    '--help': help
 }
 
 no_arg = sys.argv[1] is None;
@@ -34,4 +47,4 @@ start_time = time.time()
 options[cmd](sys.argv[2:])
 end_time = time.time()
 
-print("--- {0}s seconds ---".format(end_time - start_time))
+print("--- Total: {0}s seconds ---".format(end_time - start_time))

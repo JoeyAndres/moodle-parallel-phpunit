@@ -1,29 +1,34 @@
 # phpunit_container.py
+# TODO: enable logging.
 
 import os
 
 
 """
+@class phpunit_container_abstract
+
+Base class for phpunit containers.
 """
-class phpunit_container_abstract:
-    instance_counter = 0  # TODO: Make a factory method that handles this.
+class phpunit_container_abstract(object):
     
     """
-    @param container_image_name
-    @param base_container_name
-    @param enable_logging
+    @type container_image_name string
+    @param container_image_name Name of the docker image in which this container
+                                is based upon.
+
+    @type container_name string
+    @param container_name Name of the docker container.
+
+    @type enable_logging Boolean
+    @param enable_logging Set to True to enable logging.
     """
-    def __init__(self, container_image_name, base_container_name, enable_logging):
+    def __init__(self, container_image_name, container_name, enable_logging):
+        self.container_image_name = container_image_name
+        self.container_name = container_name
         self.logging_enable = enable_logging
         
-        self.instance_number = instance_counter
-        instance_counter += 1
-        print instance_counter
-
-        self.container_name = base_container_name + '-' + self.instance_number
-        self.container_image_name = container_image_name
-
     """
+    Removes the container if it exist. Call this prior to self.create
     """
     def remove_if_exist(self):
         if self.logging_enable:
@@ -33,21 +38,38 @@ class phpunit_container_abstract:
         os.system(cmd)
 
     """
+    Creates the container.
     """
-    def create_container(self):
+    def create(self):
         if self.logging_enable:
             print "Creating {0} container".format(self.container_name)
 
         cmd = "./create-eclass-parallel-phpunit-container.sh {0} {1} {2} {3}".format(
-            self.container_image_name, self.container_name,
-            "/home/jandres/CompScie/eclass-unified-docker,"  # todo: Make this part of the constructor.
+            self.container_image_name,
+            self.container_name,
+            "/home/jandres/CompScie/eclass-unified-docker",  # todo: Make this part of the constructor.
             "\"-v /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledatas/{0}:/phpu_moodledata \"".format(self.container_name))
         os.system(cmd)
 
     """
+    Initialize the phpunit database and phpu_moodledata.
     """
     def init_phpunit_db(self):
-        os.system("./check-pgsql-status.sh {0}".format(container))
+        os.system("./check-pgsql-status.sh {0}".format(self.container_name))
+
+    """
+    @type string
+    @param testsuite to execute
+    """
+    def test(self, testsuite):
+        pass
+
+    """
+    @type array of string
+    @param testsuites to execute
+    """
+    def tests(self, testsuites):
+        pass
 
 
 """
@@ -60,44 +82,47 @@ Since "php admin/tool/phpunit/cli/init.php" is simply too slow, the following is
 2. pg_restore -j 16 -f backup.sql (slave)
 3. Copy phpu_moodledata from master to slave.
 
-Which is (hopefully) faster.
+Personal benchmark 8-core 2.7ghz cpu and SSD:
+-php admin/tool/phpunit/cli/init.php: 139.546 s
+-"backup and restore" method: 39 s.
+
+Though, not linear, still significant. About 3.5 faster than otherwise !!!
 """
 class phpunit_container_master(phpunit_container_abstract):
 
-    """
-    @type container_image_name string
-    @param container_image_name
+    def __init__(self, container_image_name, container_name, enable_logging):
+        super(phpunit_container_master, self).__init__(container_image_name,
+                                                       container_name,
+                                                       enable_logging)
 
-    @type base_container_name string
-    @param base_container_name
+    def create(self):
+        """
+        Create the appropriate phpu_moodledata directory. This will be a volume
+        in docker container, and will then be copied to the slaves to avoid
+        duplication.
+        """
+        os.system("mkdir -p ./phpu_moodledatas/{0}".format(self.container_name))
+        super(phpunit_container_master, self).create()
 
-    @type enable_logging Boolean
-    @param enable_logging
-    """
-    def __init__(self, container_image_name, base_container_name, enable_logging):
-        super.__init__(self, container_image_name, base_container_name, enable_logging)
-
-    """
-    """
-    def create_container(self):
-        os.system("mkdir -p {0}".format(container_image_name))
-        super.create_container(self)
-
-    """
-    """
     def init_phpunit_db(self):
-        super.init_phpunit_db(self)
+        """
+        Call the usual initialization of phpunit database. Then backup the created
+        phpunit database. This backup file, will be used to populate 
+        slave phpunit dbs.
+        """
         
-        if self.logging_enabled:
+        super(phpunit_container_master, self).init_phpunit_db()
+        
+        if self.logging_enable:
             print "Initializing {0} phpunit db".format(self.container_name)
             
         init_cmd = "./initialize-eclass-parallel-phpunit-db.sh {0}".format(self.container_name)
         os.system(init_cmd)
 
-        if self.logging_enabled:
+        if self.logging_enable:
             print "Backing up {0} phpunit db".format(self.container_name)
             
-        backup_cmd = "./backup-postgresql.sh {0} {1}".format(self.container_name, self.container_name)
+        backup_cmd = "./backup-postgresql.sh {0} {1}".format(self.container_name, 'phpu_moodledb.sql')
         os.system(backup_cmd)
 
 
@@ -107,38 +132,51 @@ class phpunit_container_master(phpunit_container_abstract):
 Containers that are dependent on a @see phpunit_container_master
 """
 class phpunit_container_slave(phpunit_container_abstract):
-    
+
     """
     @type container_image_name string
     @param container_image_name
 
-    @type base_container_name string
-    @param base_container_name
+    @type container_name string
+    @param container_name
 
-    @type master_container phpunit_container_master
-    @param master_container 
+    @type phpunit_container_master @see phpunit_container_master
+    @param master_container The master container.
 
     @type enable_logging Boolean
     @param enable_logging
     """
-    def __init__(self, container_image_name, base_container_name, master_container, enable_logging):
-        super.__init__(self, container_image_name, base_container_name, enable_logging)
-        
+    def __init__(self, container_image_name, container_name, master_container, enable_logging):
+        super(phpunit_container_slave, self).__init__(container_image_name,
+                                                      container_name,
+                                                      enable_logging)
         self.master_container = master_container
 
-    def create_container(self):
-        super.init_phpunit_db(self)
+    def create(self):
+        """
+        To avoid duplicate creation of phpunit's moodledata, this is copied from
+        self.master_container.
+        """
         
         # TODO: Based this all off the master_container
-        os.system("cp -TR /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledatas/phpu_moodledata-0 /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledatas/{0}".format(self.container_name))
+        os.system("cp -TR /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledatas/{0} /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledatas/{1}".format(
+            self.master_container.container_name,
+            self.container_name))
         os.system("cp /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledb.sql /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledatas/{0}/".format(self.container_name))
 
-        super.create_container(self)
+        super(phpunit_container_slave, self).create()
+        
 
     def init_phpunit_db(self):
-        super.init_phpunit_db(self)
+        """
+        For fast initialization, self.create copies phpu_moodledata of 
+        self.master_container and restore backup file of
+        self.master_container.
+        """
         
-        if self.enabled_logging:
+        super(phpunit_container_slave, self).init_phpunit_db()
+        
+        if self.logging_enable:
             print "Restoring {0} phpunit db from {1}".format(self.container_name, self.master_container.container_name)
 
         cmd = "./restore-postgresql.sh {0}".format(self.container_name)
