@@ -1,5 +1,4 @@
 # phpunit_container.py
-# TODO: enable logging.
 
 import os
 
@@ -62,14 +61,19 @@ class phpunit_container_abstract(object):
     @param testsuite to execute
     """
     def test(self, testsuite):
-        pass
+        cmd = "./test-eclass-parallel-phpunit.sh {0} \"{1}\"".format(
+            self.container_name,
+            testsuite)
+        os.system(cmd)
 
     """
     @type array of string
     @param testsuites to execute
     """
     def tests(self, testsuites):
-        pass
+        test_cmd = "./test-eclass-parallel-phpunit.sh {0} \"{1}\"".format(
+            self.container_name, " ".join(testsuites))
+        os.system(test_cmd)
 
 
 """
@@ -86,7 +90,7 @@ Personal benchmark 8-core 2.7ghz cpu and SSD:
 -php admin/tool/phpunit/cli/init.php: 139.546 s
 -"backup and restore" method: 39 s.
 
-Though, not linear, still significant. About 3.5 faster than otherwise !!!
+Though, not linear, still significant. About 3.5x faster than otherwise !!!
 """
 class phpunit_container_master(phpunit_container_abstract):
 

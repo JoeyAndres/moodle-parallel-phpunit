@@ -72,7 +72,7 @@ def setup(args):
     print("--- {0}s seconds ---".format(utility.execute_and_time(master_routine)))
     
     for instance_number in range(1, phpunit_instance_count):
-        container_name = 'eclass-parallel-phpunit-{0}'.format(phpunit_instance_count)
+        container_name = 'eclass-parallel-phpunit-{0}'.format(instance_number)
         slave_container = phpunit_container_slave(image_name,
                                                   container_name,
                                                   master_container, True)

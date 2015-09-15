@@ -2,6 +2,7 @@
 *result.out
 test-*.out
 *.log
+.idea/
 phpu_moodledata-*
 phpu_moodledatas/
 
