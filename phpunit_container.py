@@ -20,12 +20,20 @@ class phpunit_container_abstract(object):
 
     @type enable_logging Boolean
     @param enable_logging Set to True to enable logging.
+
+    @type string
+    @param test_result_file Defaults to container_name-result.out if not provided.
     """
-    def __init__(self, container_image_name, container_name, enable_logging):
+    def __init__(self, container_image_name, container_name, enable_logging, test_result_file=None):
         self.container_image_name = container_image_name
         self.container_name = container_name
         self.logging_enable = enable_logging
-        
+
+        if test_result_file is None:
+            self.test_result_file = self.container_name + '-result.out'
+        else:
+            self.test_result_file = test_result_file
+    
     """
     Removes the container if it exist. Call this prior to self.create
     """
@@ -61,9 +69,10 @@ class phpunit_container_abstract(object):
     @param testsuite to execute
     """
     def test(self, testsuite):
-        cmd = "./test-eclass-parallel-phpunit.sh {0} \"{1}\"".format(
+        cmd = "./test-eclass-parallel-phpunit.sh {0} {1} {2}".format(
             self.container_name,
-            testsuite)
+            testsuite,
+            self.container_name + '-result.out')
         os.system(cmd)
 
     """
@@ -71,8 +80,9 @@ class phpunit_container_abstract(object):
     @param testsuites to execute
     """
     def tests(self, testsuites):
-        test_cmd = "./test-eclass-parallel-phpunit.sh {0} \"{1}\"".format(
-            self.container_name, " ".join(testsuites))
+        test_cmd = "./test-eclass-parallel-phpunit.sh {0} \"{1}\" {2}".format(
+            self.container_name, " ".join(testsuites),
+            self.container_name + '-result.out')
         os.system(test_cmd)
 
 

@@ -7,3 +7,5 @@ phpu_moodledata-*
 phpu_moodledatas/
 
 phpu_moodledb.sql
+unittest-execution-time.out
+

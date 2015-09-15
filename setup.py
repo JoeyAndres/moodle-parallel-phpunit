@@ -75,7 +75,9 @@ def setup(args):
         container_name = 'eclass-parallel-phpunit-{0}'.format(instance_number)
         slave_container = phpunit_container_slave(image_name,
                                                   container_name,
-                                                  master_container, True)
+                                                  master_container,
+                                                  True,
+                                                  container_name + '-result.out')
         containers.append(slave_container)
 
         slave_routine = lambda: [
