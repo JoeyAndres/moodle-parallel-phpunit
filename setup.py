@@ -5,6 +5,9 @@ import time
 import sys
 import subprocess
 
+import phpunit_container
+
+
 """
 """
 def _recreate_image():
@@ -47,10 +50,7 @@ def setup(args):
     config_file = open(".config", 'w')
     config_file.write(config_str)
     
-    # All is well and good, do some docker stuff.
-    # TODO: Update the documentation.
-    # 1. Create image if not yet created.
-    # TODO: Make image/container name.
+    # All is well and good, do some docker stuff. 
     os.system("mkdir -p phpu_moodledata-0")
     
     instance_number = 0
@@ -59,10 +59,10 @@ def setup(args):
     create_docker_container_cmd = "./create-eclass-parallel-phpunit-container.sh {0} {1} {2} {3}".format(
         "eclass-parallel-phpunit-first",
         container,
-        "/home/jandres/CompScie/eclass-unified-docker",
+        "/home/jandres/CompScie/eclass-unified-docker,"
         "\"-v /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledatas/phpu_moodledata-0:/phpu_moodledata \"")
     init_docker_container_db_cmd = "./initialize-eclass-parallel-phpunit-db.sh {0}".format(container)
-    backup_docker_container_db_cmd = "./backup-postgresql.sh {0}".format(container)
+    backup_docker_container_db_cmd = "./backup-postgresql.sh {0} {1}".format(container, container)
 
     print "Removing eclass-parallel-phpunit-{0} container if exist".format(instance_number)
     os.system(remove_docker_contaienr_if_exist)
