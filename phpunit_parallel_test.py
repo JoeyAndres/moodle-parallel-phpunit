@@ -70,7 +70,7 @@ class phpunit_parallel_test:
         print discarded_testsuites
         print "\n"
 
-        print "Test Suites: "
+        print "Test Suites (Sorted in ascending order in execution time): "
         print self.testsuites
         print "\n"
             
@@ -130,7 +130,6 @@ class phpunit_parallel_test:
         testsuite = None
         if len(self.testsuites) > 0:
             testsuite = self.testsuites.pop()
-            print testsuite
         self._testsuites_lock.release()
 
         return testsuite
