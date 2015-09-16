@@ -23,7 +23,7 @@ def recreate_image():
                             config.dockerfile_directory)
     
     print "Creating eclass-parallel-phpunit-rest image\n"
-    utility.build_container('eclass-parallel-phpunit-first',
+    utility.build_container('eclass-parallel-phpunit-rest',  # todo: Transfer this to config.py
                             config.slave_dockerfile,
                             config.dockerfile_directory)
 
