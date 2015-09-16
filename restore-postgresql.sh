@@ -5,4 +5,4 @@
 
 container="$1"
 
-docker exec -i ${container} pg_restore -j 16 -d moodledb /phpu_moodledata/phpu_moodledb.sql
+docker exec -i -u postgres ${container} pg_restore -j 16 -d moodledb /phpu_moodledata/phpu_moodledb.sql
