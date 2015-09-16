@@ -29,7 +29,7 @@ def test(args):
     unitest_execution_time_file.close()
     
     container_constructor = lambda index: phpunit_container_abstract(
-        config.image_name,
+        config.slave_image_name,
         config.container_name_template.format(index),
         config.container_temp_result_file_template.format(
             config.container_name_template.format(index)),
