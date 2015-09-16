@@ -2,6 +2,10 @@
 
 import os
 
+# Local
+import config
+import utility
+
 
 """
 @class phpunit_container_abstract
@@ -11,79 +15,75 @@ Base class for phpunit containers.
 class phpunit_container_abstract(object):
     
     """
-    @type container_image_name string
-    @param container_image_name Name of the docker image in which this container
+    @type string
+    @param image_name Name of the docker image in which this container
                                 is based upon.
 
-    @type container_name string
+    @type string
     @param container_name Name of the docker container.
 
-    @type enable_logging Boolean
-    @param enable_logging Set to True to enable logging.
-
     @type string
-    @param test_result_file Defaults to container_name-result.out if not provided.
-    """
-    def __init__(self, container_image_name, container_name, enable_logging, test_result_file=None):
-        self.container_image_name = container_image_name
-        self.container_name = container_name
-        self.logging_enable = enable_logging
+    @param result_file File path to the result file.
 
-        if test_result_file is None:
-            self.test_result_file = self.container_name + '-result.out'
-        else:
-            self.test_result_file = test_result_file
+    @type Boolean
+    @param enable_logging Set to True to enable logging.
+    """
+    def __init__(self, image_name, name, result_file, enable_logging):
+        self.image_name = image_name
+        self.name = name
+        self.result_file = result_file
+        self.logging_enable = enable_logging
     
     """
     Removes the container if it exist. Call this prior to self.create
     """
     def remove_if_exist(self):
         if self.logging_enable:
-            print "Removing {0} container if exist".format(self.container_name)
-            
-        cmd = "./remove-container.sh {0}".format(self.container_name)
-        os.system(cmd)
+            print "Removing {0} container if exist".format(self.name)
+        utility.remove_container(self.name)
+
+    """
+    Starts the container.
+
+    @throw SystemError when container don't exist.
+    """
+    def start(self):
+        if self.logging_enable:
+            print "Starting {0} container".format(self.name)
+        utility.start_container(self.name)
 
     """
     Creates the container.
     """
     def create(self):
         if self.logging_enable:
-            print "Creating {0} container".format(self.container_name)
+            print "Creating {0} container".format(self.name)
 
-        cmd = "./create-eclass-parallel-phpunit-container.sh {0} {1} {2} {3}".format(
-            self.container_image_name,
-            self.container_name,
-            "/home/jandres/CompScie/eclass-unified-docker",  # todo: Make this part of the constructor.
-            "\"-v /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledatas/{0}:/phpu_moodledata \"".format(self.container_name))
-        os.system(cmd)
+        utility.create_container(self.image_name, self.name)
 
     """
     Initialize the phpunit database and phpu_moodledata.
     """
     def init_phpunit_db(self):
-        os.system("./check-pgsql-status.sh {0}".format(self.container_name))
+        utility.block_while_initializing_db(self.name)
 
     """
+    Run a test on a testsuite and append it in the result file.
+
     @type string
     @param testsuite to execute
     """
     def test(self, testsuite):
-        cmd = "./test-eclass-parallel-phpunit.sh {0} {1} {2}".format(
-            self.container_name,
-            testsuite,
-            self.container_name + '-result.out')
-        os.system(cmd)
+        utility.run_phpunit_test(self.name, [testsuite], self.result_file)
 
     """
+    Run a test on an array of testsuite and append it in the result file.
+
     @type array of string
     @param testsuites to execute
     """
     def tests(self, testsuites):
-        test_cmd = "./test-eclass-parallel-phpunit.sh {0} \"{1}\" {2}".format(
-            self.container_name, " ".join(testsuites),
-            self.container_name + '-result.out')
-        os.system(test_cmd)
+        utility.run_phpunit_test(self.name, testsuites, self.result_file)
 
 
 """
@@ -104,9 +104,10 @@ Though, not linear, still significant. About 3.5x faster than otherwise !!!
 """
 class phpunit_container_master(phpunit_container_abstract):
 
-    def __init__(self, container_image_name, container_name, enable_logging):
-        super(phpunit_container_master, self).__init__(container_image_name,
-                                                       container_name,
+    def __init__(self, image_name, name, result_file, enable_logging):
+        super(phpunit_container_master, self).__init__(image_name,
+                                                       name,
+                                                       result_file,
                                                        enable_logging)
 
     def create(self):
@@ -115,7 +116,8 @@ class phpunit_container_master(phpunit_container_abstract):
         in docker container, and will then be copied to the slaves to avoid
         duplication.
         """
-        os.system("mkdir -p ./phpu_moodledatas/{0}".format(self.container_name))
+        os.system("mkdir -p {0}/{1}".format(config.temp_directory,
+                                            self.name))
         super(phpunit_container_master, self).create()
 
     def init_phpunit_db(self):
@@ -128,17 +130,13 @@ class phpunit_container_master(phpunit_container_abstract):
         super(phpunit_container_master, self).init_phpunit_db()
         
         if self.logging_enable:
-            print "Initializing {0} phpunit db".format(self.container_name)
-            
-        init_cmd = "./initialize-eclass-parallel-phpunit-db.sh {0}".format(self.container_name)
-        os.system(init_cmd)
+            print "Initializing {0} phpunit db".format(self.name)
+        utility.initialize_phpunit_db(self.name)
 
         if self.logging_enable:
-            print "Backing up {0} phpunit db".format(self.container_name)
-            
-        backup_cmd = "./backup-postgresql.sh {0} {1}".format(self.container_name, 'phpu_moodledb.sql')
-        os.system(backup_cmd)
-
+            print "Backing up {0} phpunit db".format(self.name)
+        utility.backup_phpunit_db(self.name)
+        
 
 """
 @class phpunit_container_slave
@@ -147,22 +145,10 @@ Containers that are dependent on a @see phpunit_container_master
 """
 class phpunit_container_slave(phpunit_container_abstract):
 
-    """
-    @type container_image_name string
-    @param container_image_name
-
-    @type container_name string
-    @param container_name
-
-    @type phpunit_container_master @see phpunit_container_master
-    @param master_container The master container.
-
-    @type enable_logging Boolean
-    @param enable_logging
-    """
-    def __init__(self, container_image_name, container_name, master_container, enable_logging):
-        super(phpunit_container_slave, self).__init__(container_image_name,
-                                                      container_name,
+    def __init__(self, image_name, name, master_container, result_file, enable_logging):
+        super(phpunit_container_slave, self).__init__(image_name,
+                                                      name,
+                                                      result_file,
                                                       enable_logging)
         self.master_container = master_container
 
@@ -172,11 +158,11 @@ class phpunit_container_slave(phpunit_container_abstract):
         self.master_container.
         """
         
-        # TODO: Based this all off the master_container
-        os.system("cp -TR /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledatas/{0} /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledatas/{1}".format(
-            self.master_container.container_name,
-            self.container_name))
-        os.system("cp /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledb.sql /home/jandres/CompScie/docker/docker-eclass-phpunit/phpu_moodledatas/{0}/".format(self.container_name))
+        src_dir = "{0}".format(
+            config.container_phpunit_dir_template.format(self.master_container.name))
+        dest_dir = "{0}".format(config.container_phpunit_dir_template.format(self.name))
+        utility.copy_dir(src_dir, dest_dir)
+        utility.copy_file_to_dir(config.backup_file, dest_dir)
 
         super(phpunit_container_slave, self).create()
         
@@ -191,7 +177,5 @@ class phpunit_container_slave(phpunit_container_abstract):
         super(phpunit_container_slave, self).init_phpunit_db()
         
         if self.logging_enable:
-            print "Restoring {0} phpunit db from {1}".format(self.container_name, self.master_container.container_name)
-
-        cmd = "./restore-postgresql.sh {0}".format(self.container_name)
-        os.system(cmd)
+            print "Restoring {0} phpunit db from {1}".format(self.name, self.master_container.name)
+        utility.restore_phpunit_db(self.name)

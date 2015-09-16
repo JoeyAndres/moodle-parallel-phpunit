@@ -3,9 +3,7 @@
 test-*.out
 *.log
 .idea/
-phpu_moodledata-*
-phpu_moodledatas/
+data/tmp/
 
 phpu_moodledb.sql
 unittest-execution-time.out
-

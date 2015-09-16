@@ -1,10 +1,13 @@
 # phpunit_parallel_test.py
 
 from threading import Thread, Lock
+import operator
 
 # local imports
 from phpunit_container import phpunit_container_abstract
 import utility
+import config
+
 
 """
 @class phpunit_parallel_test
@@ -20,16 +23,59 @@ class phpunit_parallel_test:
     
     @type phpunit_container_abstract
     @param containers Containers that will SHRED these testsuites.
+
+    @type dict
+    @param old_testsuites_time Old dictionary testsuites => execution time(s)
     """
-    def __init__(self, testsuites, containers):
+    def __init__(self, testsuites, containers, old_testsuites_times):
         self.testsuites = testsuites
+        self.testsuites_count = len(self.testsuites)
         self.containers = containers
+        self.testsuites_time = {}
+        
         self._testsuites_lock = Lock()
         self._thread_array = []
-        self.testsuites_time = {}
+        self._old_testsuites_times = old_testsuites_times
 
+        # See if there are new/discarded testsuites since last time.
+        # If so update old_testsuites.
+        new_testsuites = []
+        for testsuite in self.testsuites:
+            testsuite_new = self._old_testsuites_times.has_key(testsuite) is False
+            if testsuite_new:
+                self._old_testsuites_times[testsuite] = 666
+                new_testsuites.append(testsuite)
+
+        discarded_testsuites = []
+        for testsuite in self._old_testsuites_times.keys():
+            testsuite_discarded = testsuite not in self.testsuites
+            if testsuite_discarded:
+                discarded_testsuites.append(testsuite)
+                del self._old_testsuites_times[testsuite]
+
+        # Now that old testsuites is updated (contains same keys as testsuites),
+        # let is sort it based on execution time decreasing, and set
+        # the testsuites. This should give us the optimal time.
+        sorted_testsuites_time = sorted(self._old_testsuites_times.items(),
+                                        key=operator.itemgetter(1),
+                                        reverse=False)
+        self.testsuites = [testsuite[0] for testsuite in sorted_testsuites_time]
+
+        # Reports.
+        print "New testsuites: "
+        print new_testsuites
+        print "\n"
+        
+        print "Discared testsuites: "
+        print discarded_testsuites
+        print "\n"
+
+        print "Test Suites: "
+        print self.testsuites
+        print "\n"
+            
     """
-    Process testsuites one by one.
+    Creates thread for each container.
     
     @chainable
     """
@@ -61,13 +107,16 @@ class phpunit_parallel_test:
     @param container
     """
     def _run(self, container):
-        testsuite = self._pop_testsuite()
         while True:
             testsuite = self._pop_testsuite()
             if testsuite is None:
                 print 'Done'
                 return
-            print "{0}: {1}".format(container.container_name, testsuite)
+            
+            print "{0}: {1} {2}/{3}".format(container.name,
+                                            testsuite,
+                                            self.testsuites_count - len(self.testsuites),
+                                            self.testsuites_count)
             execution_time = utility.execute_and_time(container.test, testsuite)
             self.testsuites_time[testsuite] = execution_time
 
@@ -81,6 +130,7 @@ class phpunit_parallel_test:
         testsuite = None
         if len(self.testsuites) > 0:
             testsuite = self.testsuites.pop()
+            print testsuite
         self._testsuites_lock.release()
 
         return testsuite

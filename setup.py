@@ -4,64 +4,66 @@ import os
 import time
 import sys
 import subprocess
+import pickle
 
+# Local
 from phpunit_container import phpunit_container_master, phpunit_container_slave
 import utility
+import config
+import const
+
 
 """
+Recreate the docker images for both master/first and slaves/rest.
 """
 def recreate_image():
-    print "Creating eclass-parallel-phpunit-first image"
-    create_docker_first_img_cmd = "docker build -t eclass-parallel-phpunit-first -f ./Dockerfiles/dockerfile-first ./Dockerfiles"
+    print "Creating eclass-parallel-phpunit-first image\n"
+    utility.build_container('eclass-parallel-phpunit-first',
+                            config.master_dockerfile,
+                            config.dockerfile_directory)
+    
+    print "Creating eclass-parallel-phpunit-rest image\n"
+    utility.build_container('eclass-parallel-phpunit-first',
+                            config.slave_dockerfile,
+                            config.dockerfile_directory)
 
-    print "Creating eclass-parallel-phpunit-rest image"
-    create_docker_rest_img_cmd = "docker build -t eclass-parallel-phpunit -f ./Dockerfiles/dockerfile-rest ./Dockerfiles"
-    os.system(create_docker_rest_img_cmd)
+"""
+Starts the docker containers.
+
+@throws
+"""
+def start_container():
+   pass 
 
     
 """
 """
 def setup(args):
-    # TODO: Encapsulates these in a module and return, don't exit. Let the call deal with the return.
-    if len(args) is 0:
-        print """
-        No arguments to command given. For more info execute: 
-        "eclass-parallel-phpunit setup --help".
-        """
-        sys.exit(1)
-        
     if '--help' in args:
         print """
-        "eclass-parallel-phpunit setup" requires the number of parallel phpunit 
-        instance to execute. The ideal number is the number of cores in your system. 
-        For instance in an 8-core machine: "eclass-parallel-phpunit setup 8"
+        Prior to calling "eclass-parallel-phpunit setup", ensure that config.py's
+        parameters are properly set with your environment.
         """
+        return const.OK
+        
     if '--recreate-image' in args:
         recreate_image()
 
-    phpunit_instance_count = None
-    try:
-        phpunit_instance_count = int(args[0])
-    except ValueError:
-        print """
-        Argument {0} given is not a positive integer. For more info execute: 
-        "eclass-parallel-phpunit setup --help".
-        """.format(args[0])
-        sys.exit(1)
+    if '--start-containers' in args:
+        start_container()
 
-    # Save some data for other commands.
-    config_str = '''
-    container-count: {0}
-    '''.strip().format(phpunit_instance_count)
-
-    print config_str
-    
-    config_file = open(".config", 'w')
-    config_file.write(config_str)
-
-    image_name = 'eclass-parallel-phpunit'
-    master_container = phpunit_container_master(image_name,
-                                                'eclass-parallel-phpunit-0',
+    only_update_slaves = False
+    if '--only-update-slaves' in args:
+        only_update_slaves = True
+        
+        
+    # Create the master container obj.
+    master_container_name = config.container_name_template.format(0)
+    result_file = config.container_temp_result_file_template.format(
+        master_container_name)
+    master_container = phpunit_container_master(config.image_name,
+                                                master_container_name,
+                                                result_file,
                                                 True)
     containers = [master_container]  # Reference to all containers.
     
@@ -69,15 +71,20 @@ def setup(args):
         master_container.remove_if_exist(),
         master_container.create(),
         master_container.init_phpunit_db() ]
-    print("--- {0}s seconds ---".format(utility.execute_and_time(master_routine)))
     
-    for instance_number in range(1, phpunit_instance_count):
-        container_name = 'eclass-parallel-phpunit-{0}'.format(instance_number)
-        slave_container = phpunit_container_slave(image_name,
+    if only_update_slaves is False:
+        print("--- {0}s seconds ---".format(utility.execute_and_time(master_routine)))
+
+    # Create the slave obj(s).
+    for instance_number in range(1, config.container_count):
+        container_name = config.container_name_template.format(instance_number)
+        result_file = config.container_temp_result_file_template.format(
+            container_name)
+        slave_container = phpunit_container_slave(config.image_name,
                                                   container_name,
                                                   master_container,
-                                                  True,
-                                                  container_name + '-result.out')
+                                                  result_file,
+                                                  True)
         containers.append(slave_container)
 
         slave_routine = lambda: [
@@ -85,3 +92,14 @@ def setup(args):
             slave_container.create(),
             slave_container.init_phpunit_db() ]
         print("--- {0}s seconds ---".format(utility.execute_and_time(slave_routine)))
+
+    # Initialize the execution time. Since we have not executed any test yet,
+    # Just place 666 as estimates for execution time.
+    testsuites = utility.extract_testsuites_from_phpunitxml()
+    exec_time = 666
+    unittest_execution_times = dict(
+        [(testsuite, exec_time) for testsuite in testsuites])
+    unitest_execution_time_file = open(config.unitest_execution_time_file, 'w')
+    pickle.dump(unittest_execution_times, unitest_execution_time_file)
+
+    return const.OK
