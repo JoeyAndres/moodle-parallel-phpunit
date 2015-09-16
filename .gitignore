@@ -7,3 +7,4 @@ data/tmp/
 
 phpu_moodledb.sql
 unittest-execution-time.out
+unittest-execution-time-hr.out

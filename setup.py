@@ -61,7 +61,7 @@ def setup(args):
     master_container_name = config.container_name_template.format(0)
     result_file = config.container_temp_result_file_template.format(
         master_container_name)
-    master_container = phpunit_container_master(config.image_name,
+    master_container = phpunit_container_master(config.master_image_name,
                                                 master_container_name,
                                                 result_file,
                                                 True)
@@ -80,7 +80,7 @@ def setup(args):
         container_name = config.container_name_template.format(instance_number)
         result_file = config.container_temp_result_file_template.format(
             container_name)
-        slave_container = phpunit_container_slave(config.image_name,
+        slave_container = phpunit_container_slave(config.slave_image_name,
                                                   container_name,
                                                   master_container,
                                                   result_file,

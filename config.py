@@ -10,7 +10,8 @@ moodle_directory = "/home/jandres/CompScie/eclass-unified-docker"
 moodle_phpunitxml_file = moodle_directory + "/phpunit.xml"
 
 # Base container image. See ./Dockerfiles directory for more info.
-image_name = 'eclass-parallel-phpunit'
+master_image_name = 'eclass-parallel-phpunit-first'
+slave_image_name = 'eclass-parallel-phpunit-rest'
 
 # Template for container names.
 container_name_template = 'eclass-parallel-phpunit-{0}'
