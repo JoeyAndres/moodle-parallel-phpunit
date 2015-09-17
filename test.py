@@ -79,7 +79,7 @@ def test(args):
             print " * ", testsuite, "\n"
 
     result_file = open(config.result_file, 'r')
-    result_file.read()  # Output the file.
+    print result_file.read()  # Output the file.
     
     return result
 
