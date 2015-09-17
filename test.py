@@ -77,6 +77,9 @@ def test(args):
         print "Failed testsuites: "
         for testsuite in test.failed_testsuites:
             print " * ", testsuite, "\n"
+
+    result_file = open(config.result_file, 'r')
+    result_file.read()  # Output the file.
     
     return result
 
