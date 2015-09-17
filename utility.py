@@ -9,6 +9,8 @@ inherently UGLY.
 
 import time
 import os
+import subprocess
+import re
 import xml.etree.ElementTree as ET
 
 # Local
@@ -29,6 +31,21 @@ def execute_and_time(fn_or_lambda, *args):
     fn_or_lambda(*args)
     end_time = time.time()
     return end_time - start_time
+
+"""
+@type function|lambda
+@param fn_or_lambda function or lambda to be executed and timed.
+
+@type *args
+@param *args Python's *args, (aka varargs). Dereferences a tuple if only args.
+
+@return (integer (s), return value of fn_or_lambda)
+"""
+def execute_and_time_with_return(fn_or_lambda, *args):
+    start_time = time.time()
+    rv = fn_or_lambda(*args)
+    end_time = time.time()
+    return (end_time - start_time, rv)
 
 """
 """
@@ -162,6 +179,8 @@ its result in the result_file.
 
 @type string
 @param result_file Path to the result file where the test results are appended.
+
+@return True if no error, otherwise False.
 """
 def run_phpunit_test(container_name, testsuites, result_file):
     if len(testsuites) is 1:
@@ -170,15 +189,29 @@ def run_phpunit_test(container_name, testsuites, result_file):
             container_name,
             testsuites[0],
             result_file)
-        os.system(cmd)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+        (out, err) = proc.communicate()
+
+        match = re.search("There was [0-9]+ failure", out)
+        no_error = match is None
+
+        if no_error:
+            return True
+        else:
+            return False
     elif len(testsuites) > 1:
         cmd = "{0}/test-eclass-parallel-phpunit.sh {1} \"{2}\" {3}".format(
             config.container_base_directory,
             container_name,
             " ".join(testsuites),
             result_file)
-        os.s
-        ystem(cmd)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+        (out, err) = proc.communicate()
+
+        if no_error:
+            return True
+        else:
+            return False
     # Otherwise nothing happens.
 
 """

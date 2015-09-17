@@ -66,8 +66,12 @@ def test(args):
     unitest_execution_time_str = "".join(exec_time_lines)
     unitest_execution_time_hr_file = open(config.unitest_execution_time_file_hr, 'w')
     unitest_execution_time_hr_file.write(unitest_execution_time_str)
+
+    result = const.OK
+    for passed in test.passed.values():
+        result = const.ERROR if passed else const.OK
     
-    return const.OK
+    return result
 
 # Solution, Wrap test in class. Have a thread for each test. Give each thread
 # function. Have test class lock an array when acessing it.

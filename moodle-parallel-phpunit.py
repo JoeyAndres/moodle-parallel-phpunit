@@ -9,6 +9,7 @@ import os
 import setup
 import destroy
 import test
+import const
 
 def help():
     print """
@@ -44,7 +45,10 @@ if options.has_key(cmd) is False:
 # Execute command with the rest of the arguments. These submodules should handle the validity
 # of arguments and print appropriate error messages if possible.
 start_time = time.time()
-options[cmd](sys.argv[2:])
+result = options[cmd](sys.argv[2:])
 end_time = time.time()
 
 print("--- Total: {0}s seconds ---".format(end_time - start_time))
+
+exit_status = 0 if result is const.OK else 1
+sys.exit(exit_status)

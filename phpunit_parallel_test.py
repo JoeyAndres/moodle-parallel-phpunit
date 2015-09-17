@@ -7,6 +7,7 @@ import operator
 from phpunit_container import phpunit_container_abstract
 import utility
 import config
+import const
 
 
 """
@@ -32,6 +33,13 @@ class phpunit_parallel_test:
         self.testsuites_count = len(self.testsuites)
         self.containers = containers
         self.testsuites_time = {}
+
+        # @type dict
+        # @var passed A dictionary of container name and its corresponding result.
+        # TODO: Make container hashable based on its name.
+        self.passed = {}
+        for container in self.containers:
+            self.passed[container.name]=True 
         
         self._testsuites_lock = Lock()
         self._thread_array = []
@@ -105,20 +113,37 @@ class phpunit_parallel_test:
     
     @type phpunit_container_abstract
     @param container
+
+    @return const.TEST_PASSED if no error. Otherwise const.TEST_FAILED.
     """
     def _run(self, container):
+        return_value = const.TEST_PASSED
         while True:
             testsuite = self._pop_testsuite()
             if testsuite is None:
                 print 'Done'
                 return
             
-            print "{0}: {1} {2}/{3}".format(container.name,
-                                            testsuite,
-                                            self.testsuites_count - len(self.testsuites),
-                                            self.testsuites_count)
-            execution_time = utility.execute_and_time(container.test, testsuite)
+            (execution_time, passed) = utility.execute_and_time_with_return(
+                container.test, testsuite)
+            result = "PASSED" if passed else "FAILED"
+            print "{0}: {1} {2}/{3}. {4}".format(container.name,
+                                                 testsuite,
+                                                 self.testsuites_count - len(self.testsuites),
+                                                 self.testsuites_count,
+                                                 result)
             self.testsuites_time[testsuite] = execution_time
+
+            # If passed is false end this test.
+            # TODO: Make this overridable in a terminal argument.
+            if passed is False:
+                return_value = const.TEST_FAILED
+                # return const.TEST_FAILED
+
+        passed = True if return_value is const.TEST_PASSED else False
+        self.passed[container.name] = passed
+        
+        return return_value
 
     """
     A wrapper of self.testsuite to make it threadsafe.

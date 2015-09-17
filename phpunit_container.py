@@ -72,9 +72,11 @@ class phpunit_container_abstract(object):
 
     @type string
     @param testsuite to execute
+
+    @return True if no error, otherwise False.
     """
     def test(self, testsuite):
-        utility.run_phpunit_test(self.name, [testsuite], self.result_file)
+        return utility.run_phpunit_test(self.name, [testsuite], self.result_file)
 
     """
     Run a test on an array of testsuite and append it in the result file.
@@ -83,7 +85,7 @@ class phpunit_container_abstract(object):
     @param testsuites to execute
     """
     def tests(self, testsuites):
-        utility.run_phpunit_test(self.name, testsuites, self.result_file)
+        return utility.run_phpunit_test(self.name, testsuites, self.result_file)
 
 
 """
