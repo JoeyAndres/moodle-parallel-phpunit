@@ -1,6 +1,7 @@
 # setup.py
 
 import os
+import os.path
 import time
 import sys
 import subprocess
@@ -93,13 +94,16 @@ def setup(args):
             slave_container.init_phpunit_db() ]
         print("--- {0}s seconds ---".format(utility.execute_and_time(slave_routine)))
 
-    # Initialize the execution time. Since we have not executed any test yet,
-    # Just place 666 as estimates for execution time.
-    testsuites = utility.extract_testsuites_from_phpunitxml()
-    exec_time = 666
-    unittest_execution_times = dict(
-        [(testsuite, exec_time) for testsuite in testsuites])
-    unitest_execution_time_file = open(config.unitest_execution_time_file, 'w')
-    pickle.dump(unittest_execution_times, unitest_execution_time_file)
+    # Check if "execution time file" exist.
+    execution_time_file_exist = os.path.isfile(config.unitest_execution_time_file)
+    if execution_time_file_exist is False:
+        # Initialize the execution time. Since we have not executed any test yet,
+        # Just place 666 as estimates for execution time.
+        testsuites = utility.extract_testsuites_from_phpunitxml()
+        exec_time = 666
+        unittest_execution_times = dict(
+            [(testsuite, exec_time) for testsuite in testsuites])
+        unitest_execution_time_file = open(config.unitest_execution_time_file, 'w')
+        pickle.dump(unittest_execution_times, unitest_execution_time_file)
 
     return const.OK
