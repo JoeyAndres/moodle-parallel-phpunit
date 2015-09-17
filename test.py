@@ -69,7 +69,14 @@ def test(args):
 
     result = const.OK
     for passed in test.passed.values():
-        result = const.ERROR if passed else const.OK
+        if passed is False:
+            result = const.ERROR
+
+    # Print any failed testsuites if any.
+    if len(test.failed_testsuites) > 0:
+        print "Failed testsuites: "
+        for testsuite in test.failed_testsuites:
+            print " * ", testsuite, "\n"
     
     return result
 

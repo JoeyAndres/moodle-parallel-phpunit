@@ -39,7 +39,10 @@ class phpunit_parallel_test:
         # TODO: Make container hashable based on its name.
         self.passed = {}
         for container in self.containers:
-            self.passed[container.name]=True 
+            self.passed[container.name]=True
+
+        # Keeps track of he failed testsuites.
+        self.failed_testsuite = []
         
         self._testsuites_lock = Lock()
         self._thread_array = []
@@ -137,6 +140,7 @@ class phpunit_parallel_test:
             # If passed is false end this test.
             # TODO: Make this overridable in a terminal argument.
             if passed is False:
+                self.failed_testsuite.append(testsuite)
                 return_value = const.TEST_FAILED
                 # return const.TEST_FAILED
 
