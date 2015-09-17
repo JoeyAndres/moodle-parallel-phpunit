@@ -42,7 +42,7 @@ class phpunit_parallel_test:
             self.passed[container.name]=True
 
         # Keeps track of he failed testsuites.
-        self.failed_testsuite = []
+        self.failed_testsuites = []
         
         self._testsuites_lock = Lock()
         self._thread_array = []
@@ -140,7 +140,7 @@ class phpunit_parallel_test:
             # If passed is false end this test.
             # TODO: Make this overridable in a terminal argument.
             if passed is False:
-                self.failed_testsuite.append(testsuite)
+                self.failed_testsuites.append(testsuite)
                 return_value = const.TEST_FAILED
                 # return const.TEST_FAILED
 
