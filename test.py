@@ -20,7 +20,7 @@ def test(args):
         Options:
         --stop-on-failure: Stops the test immediately after failure.
 
-        --phpunit-master_dataroot [phpunit dataroot]:
+        --phpunit-master-dataroot [phpunit dataroot]:
                          Overrides the master's container phpunit dataroot.
                          This in turns override the slaves phpunit dataroot,
                          since they copy off the master's phpunit dataroot.

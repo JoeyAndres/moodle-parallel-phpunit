@@ -103,7 +103,7 @@ def rm_files(files):
 @param directories List of directories to create.
 """
 def mkdirs(dirs):
-    [os.system('mkdir -p {0}').format(dir) for dir in dirs]
+    [os.system('mkdir -p {0}'.format(dir)) for dir in dirs]
                
         
 def build_container(container_name, docker_file, docker_file_directory):
