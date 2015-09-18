@@ -20,23 +20,6 @@ def test(args):
         Options:
         --stop-on-failure: Stops the test immediately after failure.
 
-        --phpunit-master-dataroot [phpunit dataroot]:
-                         Overrides the master's container phpunit dataroot.
-                         This in turns override the slaves phpunit dataroot,
-                         since they copy off the master's phpunit dataroot.
-
-                         This is useful in dynamic build environments, where
-                         phpunit dataroot could potentially change like Ant
-                         build in Jenkins.
-
-        --moodle-directory [moodle directory]:
-                         Overrides the config.py's moodle_directory, which
-                         is the path to the moodle instance we are testing.
-
-                         This is useful in dynamic build environments, where
-                         phpunit dataroot could potentially change like Ant
-                         build in Jenkins.
-
         "moodle-parallel-phpunit test" requires running
         "moodle-parallel-phpunit setup [number of parallel tests]" before hand
         """
@@ -45,18 +28,6 @@ def test(args):
     utility.handle_option('--stop-on-failure',
                              args,
                              stop_on_failure_option_handler, "")
-
-    if utility.handle_option('--phpunit-master-dataroot',
-                             args,
-                             phpunit_master_dataroot_option_handler,
-                             lang.NO_VALID_MASTER_DATA_ROOT_ARGUMENT_MSG) is const.ERROR:
-        return const.ERROR
-
-    if utility.handle_option('--moodle-directory',
-                             args,
-                             moodle_directory_option_handler,
-                             lang.NO_VALID_MOODLE_DIR_ARGUMENT_MSG) is const.ERROR:
-        return const.ERROR
     
     testsuites = utility.extract_testsuites_from_phpunitxml()
 
@@ -159,19 +130,3 @@ Handler for --stop-on-failure option
 """
 def stop_on_failure_option_handler(option, arg_list, arg_index):
     config.stop_on_failure = True
-
-
-"""
-Handler for --phpunit-master-dataroot option
-@see utility.handle_option
-"""
-def phpunit_master_dataroot_option_handler(option, arg_list, arg_index):
-    config.master_container_phpunit_dataroot = arg_list[arg_index]
-
-
-"""
-Handler for --moodle-directory option
-@see utility.handle_option
-"""
-def moodle_directory_option_handler(option, arg_list, arg_index):
-    config.moodle_directory = arg_list[arg_index]

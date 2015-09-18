@@ -32,23 +32,6 @@ def setup(args):
                         master/slave_image. Creating an image that
                         already exist simply replaces the older one.
 
-        --phpunit-master_dataroot [phpunit dataroot]:
-                         Overrides the master's container phpunit dataroot.
-                         This in turns override the slaves phpunit dataroot,
-                         since they copy off the master's phpunit dataroot.
-
-                         This is useful in dynamic build environments, where
-                         phpunit dataroot could potentially change like Ant
-                         build in Jenkins.
-
-        --moodle-directory [moodle directory]:
-                         Overrides the config.py's moodle_directory, which
-                         is the path to the moodle instance we are testing.
-
-                         This is useful in dynamic build environments, where
-                         phpunit dataroot could potentially change like Ant
-                         build in Jenkins.
-
         --only-update-slaves: This is meant to be for those using this tool
                          in personal machine in which there is a human that
                          knows there's no need for db update (no new plugin,
@@ -65,18 +48,6 @@ def setup(args):
         return const.OK
 
     if utility.handle_option('--create-image', args, create_image, "") is const.ERROR:
-        return const.ERROR
-
-    if utility.handle_option('--phpunit-master-dataroot',
-                             args,
-                             phpunit_master_dataroot_option_handler,
-                             lang.NO_VALID_MASTER_DATA_ROOT_ARGUMENT_MSG) is const.ERROR:
-        return const.ERROR
-
-    if utility.handle_option('--moodle-directory',
-                             args,
-                             moodle_directory_option_handler,
-                             lang.NO_VALID_MOODLE_DIR_ARGUMENT_MSG) is const.ERROR:
         return const.ERROR
 
     if utility.handle_option('--only-update-slaves',
@@ -106,7 +77,7 @@ def setup(args):
      for i in range(1, config.container_count)]
 
     # Check if "execution time file" exist. If not, create one.
-    initialize_execution_file()
+    initialize_execution_time_file()
 
     return const.OK
 
@@ -133,22 +104,6 @@ def create_image(*args):
 
 
 """
-Handler for --phpunit-master-dataroot option
-@see utility.handle_option
-"""
-def phpunit_master_dataroot_option_handler(option, arg_list, arg_index):
-    config.master_container_phpunit_dataroot = arg_list[arg_index]
-
-
-"""
-Handler for --moodle-directory option
-@see utility.handle_option
-"""
-def moodle_directory_option_handler(option, arg_list, arg_index):
-    config.moodle_directory = arg_list[arg_index]
-
-
-"""
 Handler for --only-update-slaves option
 @see utility.handle_option
 """
@@ -160,7 +115,7 @@ def only_update_slaves_handler(option, arg_list, arg_index):
 Initialize the execution file if it's not there already. It will be given
 some exec time estimate.
 """
-def initialize_execution_file():
+def initialize_execution_time_file():
     execution_time_file_exist = os.path.isfile(config.unitest_execution_time_file)
     if execution_time_file_exist is False:
         # Initialize the execution time. Since we have not executed any test yet,

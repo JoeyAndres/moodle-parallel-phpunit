@@ -51,7 +51,7 @@ def execute_and_time_with_return(fn_or_lambda, *args):
 
 """
 """
-def extract_testsuites_from_phpunitxml(phpunitxml=config.moodle_directory+'/phpunit.xml'):
+def extract_testsuites_from_phpunitxml(phpunitxml=config.moodle_phpunitxml_file):
     phpunit_xml_tree = ET.parse(phpunitxml)
     phpunit_xml_root = phpunit_xml_tree.getroot()
 
