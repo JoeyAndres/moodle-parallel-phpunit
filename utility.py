@@ -156,7 +156,7 @@ def create_container(image_name,
                      moodle_directory=config.moodle_directory):
     extra_options = "\" -v {0}:/phpu_moodledata\"  ".format(
         config.container_phpunit_dataroot_template.format(container_name))
-    cmd = "{0}/create-eclass-parallel-phpunit-container.sh {1} {2} {3} {4}".format(
+    cmd = "{0}/create-moodle-parallel-phpunit-container.sh {1} {2} {3} {4}".format(
         config.bash_files,
         image_name,
         container_name,
@@ -193,7 +193,7 @@ its result in the result_file.
 """
 def run_phpunit_test(container_name, testsuites, result_file):
     if len(testsuites) is 1:
-        cmd = "{0}/test-eclass-parallel-phpunit.sh {1} {2} {3}".format(
+        cmd = "{0}/test-moodle-parallel-phpunit.sh {1} {2} {3}".format(
             config.bash_files,
             container_name,
             testsuites[0],
@@ -210,7 +210,7 @@ def run_phpunit_test(container_name, testsuites, result_file):
         else:
             return False
     elif len(testsuites) > 1:
-        cmd = "{0}/test-eclass-parallel-phpunit.sh {1} \"{2}\" {3}".format(
+        cmd = "{0}/test-moodle-parallel-phpunit.sh {1} \"{2}\" {3}".format(
             config.bash_files,
             container_name,
             " ".join(testsuites),
@@ -235,7 +235,7 @@ php admin/tool/phpunit/cli/init.php
 @param container_name Name of the container to initialize db.
 """
 def initialize_phpunit_db(container_name):
-    cmd = "{0}/initialize-eclass-parallel-phpunit-db.sh {1}".format(
+    cmd = "{0}/initialize-moodle-parallel-phpunit-db.sh {1}".format(
         config.bash_files,
         container_name)
     os.system(cmd)

@@ -5,9 +5,9 @@ Parallel phpunit tool for moodle.
 This is a tool for enabling parallel phpunit for moodle.
 
 ## HOW TO USE:
-
-1. git clone https://github.com/JoeyAndres/moodle-parallel-phpunit.git
-2. edit config.py
+1. Install docker.
+2. git clone https://github.com/JoeyAndres/moodle-parallel-phpunit.git
+3. edit config.py
    Set **moodle_directory** to the absolute path of your moodle instance.
    
    Also change *container\_count* to the number of cpu cores that you have.
@@ -16,7 +16,7 @@ This is a tool for enabling parallel phpunit for moodle.
    not recommending it at the moment since it might influence the execution
    time estimates.
    
-3. Change the config.php of your moodle instance to the following:
+4. Change the config.php of your moodle instance to the following:
 
 ```php
 <?php  // Moodle configuration file
@@ -57,14 +57,14 @@ require_once(dirname(__FILE__) . '/lib/setup.php');
 
 (Currently only handles postgres for Pre-Alpha)
 
-4. Execute _./moodle-parallel-phpunit.py setup  --recreate-image_
+5. Execute _./moodle-parallel-phpunit.py setup  --recreate-image_
 
    This is semantically wrong, but this is Pre-Alpha so I'm
    not focus on that for now.
    
-5. Execute _./moodle-parallel-phpunit.py test_
+6. Execute _./moodle-parallel-phpunit.py test_
 
-6. Result should be in data/result.out
+7. Result should be in data/result.out
 
 
 ## Problems or Question?:
