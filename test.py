@@ -57,13 +57,17 @@ def test(args):
     utility.merge_files(config.container_temp_result_files, config.result_file)
     utility.rm_files(config.container_temp_result_files)
 
-    serialize_testsuites_execution_time(parallel_phpunit_test.testsuites_time)
-
     result = const.OK
     for passed in parallel_phpunit_test.passed.values():
         if passed is False:
             result = const.ERROR
             break
+
+    # If there's a failure and config.stop_on_failure is True, the results
+    # is inaccurate since we quit early.
+    # Applying DeMorgan's Law, we get the following conditional.
+    if result is const.OK or config.stop_on_failure is False:
+        serialize_testsuites_execution_time(parallel_phpunit_test.testsuites_time)
 
     # Print total phpunit results.
     print_complete_phpunit_results()
