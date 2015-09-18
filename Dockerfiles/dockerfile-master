@@ -1,4 +1,4 @@
-# Docker file for eclass-unified project
+# Docker file for moodle-parallel-phpunit project
 FROM ubuntu:14.04.2
 MAINTAINER Joey Andres <jandres@ualberta.ca>
 
@@ -96,7 +96,7 @@ EXPOSE 11211
 # Note no need to volume partition for server data due to having more than sufficient (10GB).
 #
 # phpu_moodledata is exposed so that we can copy it during dockerfile-rest build
-VOLUME  ["/etc/postgresql", "/var/log/postgresql", "/var/lib/postgresql", "/eclass-unified", "/phpu_moodledata"]
+VOLUME  ["/etc/postgresql", "/var/log/postgresql", "/var/lib/postgresql", "/moodle-instance", "/phpu_moodledata"]
 
 USER root
 
@@ -104,9 +104,9 @@ USER root
 RUN useradd -ms /bin/bash -G sudo lmsadmin
 RUN echo lmsadmin:lmsadmin | chpasswd
 
-# Change eclass-unified permission.
-RUN chmod -R 755 /eclass-unified
-RUN chown -R  lmsadmin:lmsadmin /eclass-unified
+# Change moodle permission.
+RUN chmod -R 755 /moodle-instance
+RUN chown -R  lmsadmin:lmsadmin /moodle-instance
 
 # Create moodledata directory.
 RUN mkdir -p /moodledata

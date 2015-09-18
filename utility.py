@@ -15,6 +15,7 @@ import xml.etree.ElementTree as ET
 
 # Local
 import config
+import const
 
 
 """
@@ -99,7 +100,7 @@ def rm_files(files):
         
 def build_container(container_name, docker_file, docker_file_directory):
     cmd = "{0}/build-container.sh {1} {2} {3}".format(
-        config.container_base_directory,
+        config.bash_files,
         container_name,
         docker_file,
         docker_file_directory)
@@ -113,7 +114,7 @@ Starts the docker container.
 """
 def start_container(container_name):
     cmd = "{0}/start-container.sh {1}".format(
-        config.container_base_directory,
+        config.bash_files,
         container_name)
     os.system(cmd)
 
@@ -125,7 +126,7 @@ Remove docker container if it exist. Nothing happens otherwise.
 """
 def remove_container(container_name):
     cmd = "{0}/remove-container.sh {1}".format(
-        config.container_base_directory,
+        config.bash_files,
         container_name)
     os.system(cmd)
 
@@ -146,12 +147,12 @@ def create_container(image_name,
                      container_name,
                      moodle_directory=config.moodle_directory):
     extra_options = "\" -v {0}:/phpu_moodledata\"  ".format(
-        config.container_phpunit_dir_template.format(container_name))
+        config.container_phpunit_dataroot_template.format(container_name))
     cmd = "{0}/create-eclass-parallel-phpunit-container.sh {1} {2} {3} {4}".format(
-        config.container_base_directory,
+        config.bash_files,
         image_name,
         container_name,
-        config.moodle_directory,
+        moodle_directory,
         extra_options)
     os.system(cmd)
 
@@ -163,8 +164,8 @@ Blocks when the given container name is loading.
 its database function.
 """
 def block_while_initializing_db(container_name):
-    os.system("{0}/check-pgsql-status.sh {1}".format(
-        config.container_base_directory,
+    os.system("{0}/block-until-db-starts.sh {1}".format(
+        config.bash_files,
         container_name))
 
 """
@@ -185,7 +186,7 @@ its result in the result_file.
 def run_phpunit_test(container_name, testsuites, result_file):
     if len(testsuites) is 1:
         cmd = "{0}/test-eclass-parallel-phpunit.sh {1} {2} {3}".format(
-            config.container_base_directory,
+            config.bash_files,
             container_name,
             testsuites[0],
             result_file)
@@ -195,18 +196,22 @@ def run_phpunit_test(container_name, testsuites, result_file):
         match = re.search("There was [0-9]+ failure", out)
         no_error = match is None
 
+        # todo: remove duplication.
         if no_error:
             return True
         else:
             return False
     elif len(testsuites) > 1:
         cmd = "{0}/test-eclass-parallel-phpunit.sh {1} \"{2}\" {3}".format(
-            config.container_base_directory,
+            config.bash_files,
             container_name,
             " ".join(testsuites),
             result_file)
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
         (out, err) = proc.communicate()
+
+        match = re.search("There was [0-9]+ failure", out)
+        no_error = match is None
 
         if no_error:
             return True
@@ -223,7 +228,7 @@ php admin/tool/phpunit/cli/init.php
 """
 def initialize_phpunit_db(container_name):
     cmd = "{0}/initialize-eclass-parallel-phpunit-db.sh {1}".format(
-        config.container_base_directory,
+        config.bash_files,
         container_name)
     os.system(cmd)
 
@@ -235,7 +240,7 @@ Backup the phpunit db to a backup_file.
 """
 def backup_phpunit_db(container_name, backup_file=config.backup_file):
     cmd = "{0}/backup-postgresql.sh {1} {2}".format(
-        config.container_base_directory,
+        config.bash_files,
         container_name,
         backup_file)
     os.system(cmd)
@@ -248,7 +253,7 @@ Restore the phpunit db.
 """
 def restore_phpunit_db(container_name):
     cmd = "{0}/restore-postgresql.sh {1}".format(
-        config.container_base_directory,
+        config.bash_files,
         container_name)
     os.system(cmd)
 
@@ -257,3 +262,26 @@ def copy_dir(src_dir, dest_dir):
 
 def copy_file_to_dir(src_file, dest_dir):
     os.system("cp {0} {1}".format(src_file, dest_dir))
+
+"""
+@type *
+@param arg The arg to examine.
+
+@type list
+@param arg_list The list in which arg belongs.
+
+@type lambda|function
+@param handler The handler to the next argument if any.
+
+@type string
+@param msg The message to display in error.
+"""
+def handle_option(option, arg_list, handler, msg="", *args):
+    if option in arg_list:
+        arg_index = arg_list.index(option) + 1
+        try:
+            handler(option, arg_list, arg_index, *args)
+        except IndexError:
+            print msg
+            return const.ERROR
+        return const.OK

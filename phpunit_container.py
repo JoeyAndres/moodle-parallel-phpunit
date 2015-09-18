@@ -28,11 +28,34 @@ class phpunit_container_abstract(object):
     @type Boolean
     @param enable_logging Set to True to enable logging.
     """
-    def __init__(self, image_name, name, result_file, enable_logging):
+    def __init__(self, image_name, name, result_file, enable_logging,
+                 phpunit_dataroot=None):
         self.image_name = image_name
         self.name = name
         self.result_file = result_file
         self.logging_enable = enable_logging
+
+        use_phpunit_dataroot_default = phpunit_dataroot is None
+        if use_phpunit_dataroot_default:
+            self.phpunit_dataroot = \
+                config.container_phpunit_dataroot_template.format(self.name)
+        else:
+            self.phpunit_dataroot = phpunit_dataroot
+
+        print self.phpunit_dataroot
+
+    """
+    A function that calls the following method in order:
+    1. remove_if_exist
+    2. create
+    3. init_phpunit_db
+
+    This feature is used in more than one module, thus implemented here.
+    """
+    def create_and_instantiate(self):
+        self.remove_if_exist()
+        self.create()
+        self.init_phpunit_db()
     
     """
     Removes the container if it exist. Call this prior to self.create
@@ -87,6 +110,14 @@ class phpunit_container_abstract(object):
     def tests(self, testsuites):
         return utility.run_phpunit_test(self.name, testsuites, self.result_file)
 
+    def __key(self):
+        return (self.image_name, self.name)
+
+    def __eq__(self, other):
+        return self.__key() == other.__key
+
+    def __hash__(self):
+        return hash(self.__key())
 
 """
 @class phpunit_container_master
@@ -106,11 +137,12 @@ Though, not linear, still significant. About 3.5x faster than otherwise !!!
 """
 class phpunit_container_master(phpunit_container_abstract):
 
-    def __init__(self, image_name, name, result_file, enable_logging):
+    def __init__(self, image_name, name, result_file, enable_logging, phpunit_dataroot=None):
         super(phpunit_container_master, self).__init__(image_name,
                                                        name,
                                                        result_file,
-                                                       enable_logging)
+                                                       enable_logging,
+                                                       phpunit_dataroot)
 
     def create(self):
         """
@@ -118,8 +150,8 @@ class phpunit_container_master(phpunit_container_abstract):
         in docker container, and will then be copied to the slaves to avoid
         duplication.
         """
-        os.system("mkdir -p {0}/{1}".format(config.temp_directory,
-                                            self.name))
+        os.system("mkdir -p {0}".format(
+            config.container_phpunit_dataroot_template.format(self.name)))
         super(phpunit_container_master, self).create()
 
     def init_phpunit_db(self):
@@ -147,11 +179,12 @@ Containers that are dependent on a @see phpunit_container_master
 """
 class phpunit_container_slave(phpunit_container_abstract):
 
-    def __init__(self, image_name, name, master_container, result_file, enable_logging):
+    def __init__(self, image_name, name, master_container, result_file, enable_logging, phpunit_dataroot=None):
         super(phpunit_container_slave, self).__init__(image_name,
                                                       name,
                                                       result_file,
-                                                      enable_logging)
+                                                      enable_logging,
+                                                      phpunit_dataroot)
         self.master_container = master_container
 
     def create(self):
@@ -159,13 +192,9 @@ class phpunit_container_slave(phpunit_container_abstract):
         To avoid duplicate creation of phpunit's moodledata, this is copied from
         self.master_container.
         """
-        
-        src_dir = "{0}".format(
-            config.container_phpunit_dir_template.format(self.master_container.name))
-        dest_dir = "{0}".format(config.container_phpunit_dir_template.format(self.name))
-        utility.copy_dir(src_dir, dest_dir)
-        utility.copy_file_to_dir(config.backup_file, dest_dir)
-
+        utility.copy_dir(self.master_container.phpunit_dataroot,
+                         self.phpunit_dataroot)
+        utility.copy_file_to_dir(config.backup_file, self.phpunit_dataroot)
         super(phpunit_container_slave, self).create()
         
 

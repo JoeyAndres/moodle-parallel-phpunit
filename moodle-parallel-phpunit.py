@@ -2,8 +2,6 @@
 
 import sys
 import time
-# import subprocess
-import os
 
 # Local file.
 import setup
@@ -13,16 +11,16 @@ import const
 
 def help():
     print """
-    eclass-parallel-phpunit [COMMAND] [OPTIONS]
+    {0} [COMMAND] [OPTIONS]
     
     COMMANDS:
-    * setup: Sets up the container/phpunit instances.
-    * test: Divides and executes the tests.
-    * destroy: Destroys all the container/phpunit instances.
+    * setup: Sets up the phpunit db.
+    * test: Executes the tests..
+    * destroy: Destroys all the container/phpunit instances. (WIP)
 
     For more information for each command use:
-    eclass-parallel-phpunit [COMMAND] --help
-    """
+    {0} [COMMAND] --help
+    """.format(const.APP_NAME)
 
 options = {
     'setup': setup.setup,
@@ -31,10 +29,12 @@ options = {
     '--help': help
 }
 
-no_arg = sys.argv[1] is None;
+no_arg = sys.argv[1] is None
 
 if no_arg:
-    print "Error: No arguments. Execute: eclass-parallel-phpunit --help for a list of commands."
+    print """
+    Error: No arguments. Execute: {0} --help for a list of commands.
+    """.format(const.APP_NAME)
 
 cmd = sys.argv[1]  # phpunit xml location.
 

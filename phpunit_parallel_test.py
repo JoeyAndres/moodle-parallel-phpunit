@@ -4,9 +4,7 @@ from threading import Thread, Lock
 import operator
 
 # local imports
-from phpunit_container import phpunit_container_abstract
 import utility
-import config
 import const
 
 
@@ -36,41 +34,43 @@ class phpunit_parallel_test:
 
         # @type dict
         # @var passed A dictionary of container name and its corresponding result.
-        # TODO: Make container hashable based on its name.
-        self.passed = {}
-        for container in self.containers:
-            self.passed[container.name]=True
+        self.passed = dict([(c, True) for c in self.containers])
 
         # Keeps track of he failed testsuites.
         self.failed_testsuites = []
-        
+
+        # @type Lock
+        # @var _testsuites_lock Mutex for self.testsuites. This avoids data race
+        #                             when containers acquire testsuites to test.
         self._testsuites_lock = Lock()
+
+        # @type array
+        # @var _thread_array Keeps reference of threads that feeds the container
+        #                     testsuites. (Note: container are already running,
+        #                     and we are not controlling their thread. That's
+        #                     Docker's job).
         self._thread_array = []
+
+        # @type dict
+        # @var _old_testsuites_times A mapping of testsuites to execution time
+        #                            from last run (ideally successful run).
+        #                            This will help us achieve optimal execution
+        #                            time.
         self._old_testsuites_times = old_testsuites_times
 
-        # See if there are new/discarded testsuites since last time.
-        # If so update old_testsuites.
-        new_testsuites = []
-        for testsuite in self.testsuites:
-            testsuite_new = self._old_testsuites_times.has_key(testsuite) is False
-            if testsuite_new:
-                self._old_testsuites_times[testsuite] = 666
-                new_testsuites.append(testsuite)
+        # @type boolean
+        # @var stop_on_failure set to True to stop immediately in failure.
+        self.stop_on_failure = False
 
-        discarded_testsuites = []
-        for testsuite in self._old_testsuites_times.keys():
-            testsuite_discarded = testsuite not in self.testsuites
-            if testsuite_discarded:
-                discarded_testsuites.append(testsuite)
-                del self._old_testsuites_times[testsuite]
+        # @type boolean
+        # @var _stop_flag Set to true when one of the unittest fail and
+        #                self.stop_on_failure is set to true. This allows
+        #                containers to finnish what they were doing, allowing
+        #                a safe exit, instead of the kill alternative.
+        self._stop_flag = False
 
-        # Now that old testsuites is updated (contains same keys as testsuites),
-        # let is sort it based on execution time decreasing, and set
-        # the testsuites. This should give us the optimal time.
-        sorted_testsuites_time = sorted(self._old_testsuites_times.items(),
-                                        key=operator.itemgetter(1),
-                                        reverse=False)
-        self.testsuites = [testsuite[0] for testsuite in sorted_testsuites_time]
+        discarded_testsuites, new_testsuites = \
+            self._sync_testsuites_and_old_testsuites_times()
 
         # Reports.
         print "New testsuites: "
@@ -84,7 +84,7 @@ class phpunit_parallel_test:
         print "Test Suites (Sorted in ascending order in execution time): "
         print self.testsuites
         print "\n"
-            
+
     """
     Creates thread for each container.
     
@@ -92,8 +92,7 @@ class phpunit_parallel_test:
     """
     def run(self):
         for container in self.containers:
-            test_routine = lambda: self._run(container)        
-            thread_instance = Thread(None,  test_routine)
+            thread_instance = Thread(None, lambda: self._run(container))
             self._thread_array.append(thread_instance)
             thread_instance.daemon = True
             thread_instance.start()
@@ -121,33 +120,51 @@ class phpunit_parallel_test:
     """
     def _run(self, container):
         return_value = const.TEST_PASSED
-        while True:
+        while self._stop_flag is False:
             testsuite = self._pop_testsuite()
             if testsuite is None:
-                print 'Done'
-                return
+                print container.name, " can't crunch anymore testsuites."
+                break
             
-            (execution_time, passed) = utility.execute_and_time_with_return(
-                container.test, testsuite)
-            result = "PASSED" if passed else "FAILED"
-            print "{0}: {1} {2}/{3}. {4}".format(container.name,
-                                                 testsuite,
-                                                 self.testsuites_count - len(self.testsuites),
-                                                 self.testsuites_count,
-                                                 result)
+            (execution_time, passed) = \
+                utility.execute_and_time_with_return(container.test, testsuite)
+            result_msg = "PASSED" if passed else "FAILED"
+            self._prompt_testsuite_result(container, result_msg, testsuite)
             self.testsuites_time[testsuite] = execution_time
 
             # If passed is false end this test.
-            # TODO: Make this overridable in a terminal argument.
             if passed is False:
                 self.failed_testsuites.append(testsuite)
                 return_value = const.TEST_FAILED
-                # return const.TEST_FAILED
+
+                if self.stop_on_failure:
+                    print "Failure occured, waiting for the currently executed " \
+                          "testsuites to stop."
+                    self._stop_flag = True
+                    break
 
         passed = True if return_value is const.TEST_PASSED else False
         self.passed[container.name] = passed
         
         return return_value
+
+    """
+    @type phpunit_container_abstract
+    @param container
+
+    @type string
+    @param msg Result message.
+
+    @type string
+    @param testsuite String of the testsuite being executed.
+    """
+    def _prompt_testsuite_result(self, container, msg, testsuite):
+        testsuites_left = self.testsuites_count - len(self.testsuites)
+        print "{0}: {1} {2}/{3}. {4}".format(container.name,
+                                             testsuite,
+                                             testsuites_left,
+                                             self.testsuites_count,
+                                             msg)
 
     """
     A wrapper of self.testsuite to make it threadsafe.
@@ -162,3 +179,36 @@ class phpunit_parallel_test:
         self._testsuites_lock.release()
 
         return testsuite
+
+    """
+    Sync self.testsuites and self._old_testsuites_times. This is
+    because self.testsuites contains the latest testsuites whilst
+    self._old_testsuites_times contains a dictionary of the testsuites
+    from last run and its corresponding execution time, thus needs to be
+    updated.
+    """
+    def _sync_testsuites_and_old_testsuites_times(self):
+        # See if there are new/discarded testsuites since last time.
+        # If so update old_testsuites.
+        new_testsuites = []
+        for testsuite in self.testsuites:
+            testsuite_new = self._old_testsuites_times.has_key(testsuite) is False
+            if testsuite_new:
+                self._old_testsuites_times[testsuite] = 666
+                new_testsuites.append(testsuite)
+
+        discarded_testsuites = []
+        for testsuite in self._old_testsuites_times.keys():
+            testsuite_discarded = testsuite not in self.testsuites
+            if testsuite_discarded:
+                discarded_testsuites.append(testsuite)
+                del self._old_testsuites_times[testsuite]
+
+        # Now that old testsuites is updated (contains same keys as testsuites),
+        # let is sort it based on execution time decreasing, and set
+        # the testsuites. This should give us the optimal time.
+        sorted_testsuites_time = sorted(self._old_testsuites_times.items(),
+                                        key=operator.itemgetter(1),
+                                        reverse=False)
+        self.testsuites = [testsuite[0] for testsuite in sorted_testsuites_time]
+        return discarded_testsuites, new_testsuites
