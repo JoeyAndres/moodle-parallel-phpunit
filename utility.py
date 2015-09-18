@@ -48,9 +48,10 @@ def execute_and_time_with_return(fn_or_lambda, *args):
     end_time = time.time()
     return (end_time - start_time, rv)
 
+
 """
 """
-def extract_testsuites_from_phpunitxml(phpunitxml=config.moodle_phpunitxml_file):
+def extract_testsuites_from_phpunitxml(phpunitxml=config.moodle_directory+'/phpunit.xml'):
     phpunit_xml_tree = ET.parse(phpunitxml)
     phpunit_xml_root = phpunit_xml_tree.getroot()
 
