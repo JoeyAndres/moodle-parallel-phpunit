@@ -5,6 +5,7 @@ test-*.out
 .idea/
 data/
 data/tmp/
+logs/
 
 phpu_moodledb.sql
 unittest-execution-time.out

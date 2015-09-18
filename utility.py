@@ -96,6 +96,14 @@ def merge_files(source_files, dest_file):
 """
 def rm_files(files):
     [os.system('rm {0}'.format(f)) for f in files]
+
+
+"""
+@type list
+@param directories List of directories to create.
+"""
+def mkdirs(dirs):
+    [os.system('mkdir -p {0}').format(dir) for dir in dirs]
                
         
 def build_container(container_name, docker_file, docker_file_directory):

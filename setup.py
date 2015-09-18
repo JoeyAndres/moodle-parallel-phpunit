@@ -56,6 +56,8 @@ def setup(args):
 
                          (Note: This is to be deprecated in Alpha release,
                                 in which this checking will be automated.)
+                         (Note: Pre-Alpha doesn't handle starting containers
+                                if not yet started, so do it yourself atm.)
 
         Prior to calling "moodle-parallel-phpunit setup", ensure that config.py's
         parameters are properly set with your environment.
@@ -83,6 +85,9 @@ def setup(args):
                              "") is const.ERROR:  # Boolean are reference.
         return const.ERROR
 
+    # Create necessary directory(ies).
+    create_necessary_directories()
+
     # Create the master container obj.
     result_file = config.container_temp_result_file_template.format(
         config.master_container_name)
@@ -105,6 +110,12 @@ def setup(args):
 
     return const.OK
 
+
+"""
+Create necessary directories for this app to work.
+"""
+def create_necessary_directories():
+    utility.mkdirs([ config.data_directory ])
 
 """
 Recreate the docker images for both master/first and slaves/rest.
