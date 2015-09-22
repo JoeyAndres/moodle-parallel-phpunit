@@ -1,4 +1,9 @@
-# config.py
+"""
+config.py
+
+@copyright GPL License
+@
+"""
 
 import os
 
