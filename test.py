@@ -2,6 +2,7 @@
 
 import operator
 import pickle  # serializing
+import sys
 
 # local imports
 import config
@@ -76,6 +77,7 @@ def test(args):
     print "\n"
     print_failed_testsuites(parallel_phpunit_test.failed_testsuites)
     print "\n"
+    sys.stdout.flush()
 
     return result
 
@@ -113,6 +115,7 @@ Print the final merge results.
 def print_complete_phpunit_results():
     result_file = open(config.result_file, 'r')
     print result_file.read()  # Output the file.
+    sys.stdout.flush()
 
 
 """
@@ -126,6 +129,7 @@ def print_failed_testsuites(failed_testsuites):
         print "Failed testsuites: "
         for testsuite in failed_testsuites:
             print " * ", testsuite, '\n'
+            sys.stdout.flush()
 
 
 """

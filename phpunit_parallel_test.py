@@ -2,6 +2,7 @@
 
 from threading import Thread, Lock
 import operator
+import sys
 
 # local imports
 import utility
@@ -93,6 +94,7 @@ class phpunit_parallel_test:
         print "Test Suites (Sorted in ascending order in execution time): "
         print self.testsuites
         print "\n"
+        sys.stdout.flush()
 
     """
     Creates thread for each container.
@@ -116,6 +118,7 @@ class phpunit_parallel_test:
     def wait(self):
         for thread in self._thread_array:
             print "Waiting for thread: {0}".format(thread.name)
+            sys.stdout.flush()
             thread.join()
         return self
 
@@ -133,6 +136,7 @@ class phpunit_parallel_test:
             testsuite = self._pop_testsuite()
             if testsuite is None:
                 print container.name, " can't crunch anymore testsuites."
+                sys.stdout.flush()
                 break
             
             (execution_time, passed) = \
@@ -150,6 +154,7 @@ class phpunit_parallel_test:
                 if self.stop_on_failure:
                     print "Failure occured, waiting for the currently executed " \
                           "testsuites to stop."
+                    sys.stdout.flush()
                     self._stop_flag = True
                     break
 
@@ -174,6 +179,7 @@ class phpunit_parallel_test:
                                              self._test_count_done,
                                              self.testsuites_count,
                                              msg)
+        sys.stdout.flush()
 
     """
     A wrapper of self.testsuite to make it threadsafe.
