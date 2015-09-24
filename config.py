@@ -18,10 +18,10 @@ bash_files = container_base_directory + "/bash"
 py_files = container_base_directory + "/py"
 
 # Data directory. Where results and temporary files are stored.
-data_directory = container_base_directory + '/data'
+data_directory = os.path.expandvars('${HOME}/.moodle-parallel-phpunit/data')
 
 # Directory of the moodle instance. Modify this path to the absolute
-# path of your moodle instance.
+# path of your moodle instance. Needs absolute path!!!
 moodle_directory = "/home/jandres/CompScie/eclass-unified-docker"
 
 # Path to the phpunit.xml file.
