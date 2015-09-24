@@ -155,7 +155,7 @@ Creates the container from a given image.
 def create_container(image_name,
                      container_name,
                      moodle_directory=config.moodle_directory):
-    extra_options = "\" -v {0}:/phpu_moodledata\"  ".format(
+    extra_options = "\" -v {0}:/phpu_moodledata\"".format(
         config.container_phpunit_dataroot_template.format(container_name))
     cmd = "{0}/create-moodle-parallel-phpunit-container.sh {1} {2} {3} {4}".format(
         config.bash_files,

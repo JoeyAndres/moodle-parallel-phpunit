@@ -92,7 +92,7 @@ class phpunit_parallel_test:
     """
     def run(self):
         for container in self.containers:
-            thread_instance = Thread(None, lambda: self._run(container))
+            thread_instance = Thread(target=self._run, args=(container,))
             self._thread_array.append(thread_instance)
             thread_instance.daemon = True
             thread_instance.start()
