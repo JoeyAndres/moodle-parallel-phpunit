@@ -72,6 +72,15 @@ class phpunit_parallel_test:
         discarded_testsuites, new_testsuites = \
             self._sync_testsuites_and_old_testsuites_times()
 
+        # @type int
+        # @var _test_count_done Keeps track of the number of testsuites done.
+        self._test_count_done = 0
+
+        # @type Lock
+        # @var _test_count_done_lock Mutex for self._test_count_done, ensuring
+        #                            only one increment at a time.
+        self._test_count_done_lock = Lock()
+
         # Reports.
         print "New testsuites: "
         print new_testsuites
@@ -129,6 +138,7 @@ class phpunit_parallel_test:
             (execution_time, passed) = \
                 utility.execute_and_time_with_return(container.test, testsuite)
             result_msg = "PASSED" if passed else "FAILED"
+            self._incr_test_done_count()
             self._prompt_testsuite_result(container, result_msg, testsuite)
             self.testsuites_time[testsuite] = execution_time
 
@@ -159,10 +169,9 @@ class phpunit_parallel_test:
     @param testsuite String of the testsuite being executed.
     """
     def _prompt_testsuite_result(self, container, msg, testsuite):
-        testsuites_left = self.testsuites_count - len(self.testsuites)
         print "{0}: {1} {2}/{3}. {4}".format(container.name,
                                              testsuite,
-                                             testsuites_left,
+                                             self._test_count_done,
                                              self.testsuites_count,
                                              msg)
 
@@ -179,6 +188,11 @@ class phpunit_parallel_test:
         self._testsuites_lock.release()
 
         return testsuite
+
+    def _incr_test_done_count(self):
+        self._test_count_done_lock.acquire(True)
+        self._test_count_done += 1
+        self._test_count_done_lock.release()
 
     """
     Sync self.testsuites and self._old_testsuites_times. This is
