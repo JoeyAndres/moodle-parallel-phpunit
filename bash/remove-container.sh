@@ -9,6 +9,6 @@ echo "Container: $CONTAINER_NAME";
 EXIST=`docker ps -a | grep "[[:space:]]${CONTAINER_NAME}$"`
 if [ -n "$EXIST" ]; then
     echo "Container already exist, and maybe running. This will be stopped and removed."
-    docker stop $CONTAINER_NAME
-    docker rm $CONTAINER_NAME
+    docker stop "$CONTAINER_NAME"
+    docker rm "$CONTAINER_NAME"
 fi
